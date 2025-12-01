@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Encurtador de URL 100% Serverless - API Gateway + Lambda + DynamoDB
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 10
+    MemorySize: 128
+    Environment:
+      Variables:
+        NOME_TABELA:
+          Ref: TabelaURLs
+Resources:
+  TabelaURLs:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: TabelaURLs
+      AttributeDefinitions:
+      - AttributeName: codigo
+        AttributeType: S
+      KeySchema:
+      - AttributeName: codigo
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  FuncaoEncurtador:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: FuncaoEncurtadorURL
+      Handler: app.handler
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: TabelaURLs
+      Events:
+        RotaCriar:
+          Type: Api
+          Properties:
+            Path: /encurtar
+            Method: post
+        RotaRedirecionar:
+          Type: Api
+          Properties:
+            Path: /{codigo}
+            Method: get
+      CodeUri: FuncaoEncurtador
+    Metadata:
+      SamResourceId: FuncaoEncurtador
+Outputs:
+  URLDaAPI:
+    Description: URL base da API para utilizar o encurtador
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
